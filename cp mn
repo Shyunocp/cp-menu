@@ -1,0 +1,756 @@
+-- // ==========================================
+-- // CP MENU - FEITO POR SHYUNOCP
+-- // Farm + Star + Movimento + Players
+-- // ==========================================
+
+-- // ==========================================
+-- // 1. REFERÊNCIAS DO JOGO
+-- // ==========================================
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:WaitForChild("Humanoid")
+local camera = Workspace.CurrentCamera
+
+-- // ==========================================
+-- // 1.1. LIMPEZA DE OBJETOS COM "?" (BUG DO JOGO)
+-- // ==========================================
+
+spawn(function()
+    while task.wait(2) do
+        if char and hrp then
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if obj.Name:find("%?") then
+                    if obj:IsA("BasePart") or obj:IsA("BillboardGui") or obj:IsA("TextLabel") or obj:IsA("Model") then
+                        local posicao
+                        if obj:IsA("BasePart") then
+                            posicao = obj.Position
+                        elseif obj:IsA("Model") and obj.PrimaryPart then
+                            posicao = obj.PrimaryPart.Position
+                        end
+                        
+                        if posicao and (posicao - hrp.Position).Magnitude < 30 then
+                            pcall(function() obj:Destroy() end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- // ==========================================
+-- // 2. CARREGAR FLUENT
+-- // ==========================================
+
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+-- // ==========================================
+-- // 3. CRIAR JANELA
+-- // ==========================================
+
+local Window = Fluent:CreateWindow({
+    Title = "cp menu",
+    SubTitle = "Feito por Shyunocp",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(540, 440),
+    Acrylic = false,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl -- VAMOS USAR O LEFTCONTROL COMO TECLA DE ABRIR/FECHAR
+})
+
+-- // ==========================================
+-- // 4. CRIAR ABAS
+-- // ==========================================
+
+local Tabs = {
+    Farm = Window:AddTab({ Title = "📦 Farm", Icon = "package" }),
+    Star = Window:AddTab({ Title = "⭐ Star", Icon = "star" }),
+    Movimento = Window:AddTab({ Title = "🏃 Movimento", Icon = "move" }),
+    Players = Window:AddTab({ Title = "👥 Players", Icon = "users" }),
+    Kill = Window:AddTab({ Title = "🔪 Kill", Icon = "lock" }),
+    Settings = Window:AddTab({ Title = "⚙️ Settings", Icon = "settings" })
+}
+
+local Options = Fluent.Options
+
+-- // ==========================================
+-- // 5. REMOVER BLUR RESIDUAL
+-- // ==========================================
+
+local function RemoverBlur()
+    for _, obj in pairs(Lighting:GetChildren()) do
+        if obj:IsA("BlurEffect") then
+            obj:Destroy()
+        end
+    end
+end
+
+spawn(function()
+    while task.wait(0.5) do
+        RemoverBlur()
+    end
+end)
+
+-- // ==========================================
+-- // 6. BOTÃO FLUTUANTE (USA VIRTUALINPUTMANAGER)
+-- // ==========================================
+
+local ID_IMAGEM = "rbxassetid://10552793012" -- Troque pelo ID da sua imagem
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FloatingButtonGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+local FloatingBtn = Instance.new("ImageButton")
+FloatingBtn.Size = UDim2.new(0, 65, 0, 65)
+FloatingBtn.Position = UDim2.new(0, 20, 0, 200)
+FloatingBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+FloatingBtn.BackgroundTransparency = 0.2
+FloatingBtn.Image = ID_IMAGEM
+FloatingBtn.ImageColor3 = Color3.fromRGB(255, 255, 255)
+FloatingBtn.ScaleType = Enum.ScaleType.Crop
+FloatingBtn.BorderSizePixel = 0
+FloatingBtn.AutoButtonColor = false
+FloatingBtn.Active = true
+FloatingBtn.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = FloatingBtn
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(200, 50, 200)
+UIStroke.Thickness = 2
+UIStroke.Parent = FloatingBtn
+
+local Watermark = Instance.new("TextLabel")
+Watermark.Size = UDim2.new(0, 150, 0, 15)
+Watermark.Position = UDim2.new(0, -42, 1, 5)
+Watermark.BackgroundTransparency = 1
+Watermark.TextColor3 = Color3.fromRGB(200, 200, 200)
+Watermark.Text = "Feito por Shyunocp"
+Watermark.Font = Enum.Font.SourceSans
+Watermark.TextSize = 10
+Watermark.Parent = ScreenGui
+
+-- Função que simula a tecla LeftControl (o Fluent já entende essa tecla)
+local function ToggleMenu()
+    -- Simula pressionar LeftControl
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.LeftControl, false, game)
+    task.wait(0.05)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.LeftControl, false, game)
+    
+    -- Feedback visual (alterna a cor do botão)
+    if UIStroke.Color == Color3.fromRGB(200, 50, 200) then
+        UIStroke.Color = Color3.fromRGB(100, 100, 100)
+        FloatingBtn.BackgroundColor3 = Color3.fromRGB(60, 20, 60)
+    else
+        UIStroke.Color = Color3.fromRGB(200, 50, 200)
+        FloatingBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    end
+end
+
+-- // ==========================================
+-- // ARRASTAR E CLICAR
+-- // ==========================================
+
+local dragging = false
+local dragStart, startPos
+local tempoClique = 0
+local moveuMuito = false
+
+FloatingBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = FloatingBtn.Position
+        tempoClique = tick()
+        moveuMuito = false
+    end
+end)
+
+FloatingBtn.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+        local duracao = tick() - tempoClique
+        if duracao < 0.5 and not moveuMuito then
+            ToggleMenu()
+        end
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        if (input.Position - dragStart).Magnitude > 5 then
+            moveuMuito = true
+        end
+        FloatingBtn.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- // ==========================================
+-- // 7. ESTADOS GLOBAIS
+-- // ==========================================
+
+local farmAtivo = false
+local starAtivo = false
+local noClipAtivo = true
+local flyAtivo = false
+local conexaoNoClip = nil
+local conexaoFly = nil
+local estrelaPega = false
+
+local NomeDaTool = "caixa"
+local NomePegar = "GetJobPart"
+local NomeEntregar = "TrabalhoBar"
+
+-- // ==========================================
+-- // 8. FUNÇÕES DO FARM
+-- // ==========================================
+
+local function AtivarNoClip()
+    if conexaoNoClip then conexaoNoClip:Disconnect() end
+    conexaoNoClip = RunService.Stepped:Connect(function()
+        if noClipAtivo and char then
+            for _, parte in pairs(char:GetDescendants()) do
+                if parte:IsA("BasePart") and parte.Name ~= "HumanoidRootPart" and parte.CanCollide then
+                    parte.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function ApertarPrompt(prompt)
+    if prompt and prompt:IsA("ProximityPrompt") then
+        prompt:InputHoldBegin()
+        task.wait(0.05)
+        prompt:InputHoldEnd()
+    end
+end
+
+local function TemCaixa()
+    return char:FindFirstChild(NomeDaTool) or player.Backpack:FindFirstChild(NomeDaTool)
+end
+
+local function IniciarFarm()
+    spawn(function()
+        while farmAtivo do
+            if TemCaixa() then
+                local pontoDeEntrega = Workspace:FindFirstChild(NomeEntregar, true)
+                if pontoDeEntrega then
+                    local targetPart = pontoDeEntrega:FindFirstChild("TargetPart")
+                    local destino = targetPart or pontoDeEntrega
+                    local posicaoExata = destino.Position
+                    hrp.CFrame = CFrame.new(posicaoExata) + Vector3.new(0, 2, 0)
+                    task.wait(0.05)
+                    local tempoLimite = tick() + 3
+                    local angulo = 0
+                    while TemCaixa() and tick() < tempoLimite and farmAtivo do
+                        angulo = angulo + 0.8
+                        local raio = 0.8
+                        local offsetX = math.cos(angulo) * raio
+                        local offsetZ = math.sin(angulo) * raio
+                        hrp.CFrame = CFrame.new(posicaoExata + Vector3.new(offsetX, 2, offsetZ))
+                        task.wait(0.03)
+                    end
+                end
+            else
+                local pontoDePegar = Workspace:FindFirstChild(NomePegar, true)
+                if pontoDePegar then
+                    hrp.CFrame = CFrame.new(pontoDePegar.Position) + Vector3.new(0, 2, 0)
+                    task.wait(0.05)
+                    local prompt = pontoDePegar:FindFirstChildOfClass("ProximityPrompt")
+                    if prompt then ApertarPrompt(prompt) end
+                    local tempoLimite = tick() + 1
+                    while not TemCaixa() and tick() < tempoLimite and farmAtivo do
+                        task.wait(0.05)
+                    end
+                end
+            end
+            task.wait(0.05)
+        end
+    end)
+end
+
+-- // ==========================================
+-- // 9. FUNÇÕES DO AUTO STAR
+-- // ==========================================
+
+local function TeleportarParaEstrela(estrela)
+    if estrela and hrp and estrela.Parent then
+        hrp.CFrame = CFrame.new(estrela.Position) + Vector3.new(0, 3, 0)
+        estrelaPega = true
+        Fluent:Notify({Title = "⭐ Estrela Pega!", Content = "Você pegou a estrela!", Duration = 3})
+        task.wait(0.5)
+        estrelaPega = false
+    end
+end
+
+local function VerificarEstrela()
+    local estrela = Workspace:FindFirstChild("Star")
+    if estrela and estrela:IsA("BasePart") then return estrela end
+    return nil
+end
+
+local function IniciarAutoStar()
+    local estrelaInicial = VerificarEstrela()
+    if estrelaInicial then TeleportarParaEstrela(estrelaInicial) end
+    
+    Workspace.ChildAdded:Connect(function(child)
+        if starAtivo and child.Name == "Star" and child:IsA("BasePart") then
+            task.wait(0.1)
+            TeleportarParaEstrela(child)
+        end
+    end)
+    
+    spawn(function()
+        while starAtivo do
+            if not estrelaPega then
+                local estrela = VerificarEstrela()
+                if estrela then TeleportarParaEstrela(estrela) end
+            end
+            task.wait(0.3)
+        end
+    end)
+end
+
+-- // ==========================================
+-- // 10. FUNÇÃO DE FLY
+-- // ==========================================
+
+local function IniciarFly()
+    if conexaoFly then conexaoFly:Disconnect() end
+    
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = hrp
+    
+    local bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bodyGyro.P = 1000
+    bodyGyro.D = 50
+    bodyGyro.Parent = hrp
+    
+    conexaoFly = RunService.Heartbeat:Connect(function()
+        if not flyAtivo or not hrp then return end
+        
+        local direcao = Vector3.new(0, 0, 0)
+        local velocidade = 80
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            direcao = direcao + camera.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            direcao = direcao - camera.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            direcao = direcao - camera.CFrame.RightVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            direcao = direcao + camera.CFrame.RightVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            direcao = direcao + Vector3.new(0, 1, 0)
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+            direcao = direcao - Vector3.new(0, 1, 0)
+        end
+        
+        if direcao.Magnitude > 0 then
+            bodyVelocity.Velocity = direcao.Unit * velocidade
+        else
+            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        end
+        
+        bodyGyro.CFrame = camera.CFrame
+    end)
+end
+
+local function PararFly()
+    flyAtivo = false
+    if conexaoFly then conexaoFly:Disconnect() end
+    if hrp then
+        for _, obj in pairs(hrp:GetChildren()) do
+            if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") then
+                obj:Destroy()
+            end
+        end
+    end
+end
+
+-- // ==========================================
+-- // 11. FUNÇÕES DE PLAYER
+-- // ==========================================
+
+local jogadorSelecionado = nil
+local espectando = false
+local conexaoEspectador = nil
+
+local function AtualizarListaJogadores()
+    local lista = {}
+    for _, jog in pairs(Players:GetPlayers()) do
+        if jog ~= player then
+            table.insert(lista, jog.Name)
+        end
+    end
+    return lista
+end
+
+local function GetJogadorPorNome(nome)
+    for _, jog in pairs(Players:GetPlayers()) do
+        if jog.Name == nome then return jog end
+    end
+    return nil
+end
+
+local function TeleportarParaJogador(nome)
+    local alvo = GetJogadorPorNome(nome)
+    if alvo and alvo.Character and hrp then
+        local alvoHrp = alvo.Character:FindFirstChild("HumanoidRootPart")
+        if alvoHrp then
+            hrp.CFrame = alvoHrp.CFrame + Vector3.new(0, 3, 3)
+            Fluent:Notify({Title = "👥 Teleporte", Content = "Teleportado para " .. nome, Duration = 3})
+        end
+    end
+end
+
+local function IniciarEspectador(nome)
+    local alvo = GetJogadorPorNome(nome)
+    if not alvo then
+        Fluent:Notify({Title = "👁 Espectador", Content = "Jogador não encontrado!", Duration = 3})
+        return
+    end
+    
+    espectando = true
+    if conexaoEspectador then conexaoEspectador:Disconnect() end
+    
+    conexaoEspectador = RunService.RenderStepped:Connect(function()
+        if espectando and alvo.Character then
+            local alvoHead = alvo.Character:FindFirstChild("Head")
+            if alvoHead then
+                camera.CameraSubject = alvoHead
+                camera.CameraType = Enum.CameraType.Custom
+            end
+        else
+            if char and char:FindFirstChild("Humanoid") then
+                camera.CameraSubject = char.Humanoid
+            end
+            espectando = false
+            if conexaoEspectador then conexaoEspectador:Disconnect() end
+        end
+    end)
+    
+    Fluent:Notify({Title = "👁 Espectador", Content = "Espectando: " .. nome, Duration = 3})
+end
+
+local function PararEspectador()
+    espectando = false
+    if conexaoEspectador then conexaoEspectador:Disconnect() end
+    if char and char:FindFirstChild("Humanoid") then
+        camera.CameraSubject = char.Humanoid
+        camera.CameraType = Enum.CameraType.Custom
+    end
+    Fluent:Notify({Title = "👁 Espectador", Content = "Espectador desligado!", Duration = 3})
+end
+
+local function PuxarJogador(nome)
+    local alvo = GetJogadorPorNome(nome)
+    if not alvo or not alvo.Character or not hrp then
+        Fluent:Notify({Title = "🪝 Puxar", Content = "Jogador não encontrado!", Duration = 3})
+        return
+    end
+    
+    local alvoHrp = alvo.Character:FindFirstChild("HumanoidRootPart")
+    if not alvoHrp then return end
+    
+    spawn(function()
+        local tempoLimite = tick() + 3
+        while tick() < tempoLimite and alvo.Character and alvo.Character:FindFirstChild("HumanoidRootPart") do
+            local alvoHrpAtual = alvo.Character.HumanoidRootPart
+            
+            local bv = Instance.new("BodyVelocity")
+            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            
+            local direcao = (hrp.Position - alvoHrpAtual.Position).Unit
+            bv.Velocity = direcao * 100
+            
+            bv.Parent = alvoHrpAtual
+            task.wait(0.1)
+            bv:Destroy()
+        end
+    end)
+    
+    Fluent:Notify({Title = "🪝 Puxar", Content = "Puxando " .. nome .. "...", Duration = 3})
+end
+
+-- // ==========================================
+-- // 12. ABA FARM
+-- // ==========================================
+
+Tabs.Farm:AddParagraph({
+    Title = "📦 Farm Automático",
+    Content = "Pega a caixa e entrega na TrabalhoBar rapidamente."
+})
+
+Tabs.Farm:AddToggle("FarmToggle", {
+    Title = "Ligar Farm",
+    Description = "Ativa o farm automático de caixas",
+    Default = false
+}):OnChanged(function(Value)
+    farmAtivo = Value
+    if Value then
+        IniciarFarm()
+        AtivarNoClip()
+        Fluent:Notify({Title = "Farm", Content = "Farm LIGADO!", Duration = 3})
+    else
+        Fluent:Notify({Title = "Farm", Content = "Farm DESLIGADO!", Duration = 3})
+    end
+end)
+
+Tabs.Farm:AddToggle("NoClipToggle", {
+    Title = "No Clip",
+    Description = "Atravessa paredes",
+    Default = true
+}):OnChanged(function(Value)
+    noClipAtivo = Value
+    if not Value and char then
+        for _, parte in pairs(char:GetDescendants()) do
+            if parte:IsA("BasePart") then parte.CanCollide = true end
+        end
+    end
+end)
+
+-- // ==========================================
+-- // 13. ABA STAR
+-- // ==========================================
+
+Tabs.Star:AddParagraph({
+    Title = "⭐ Auto Star",
+    Content = "Teleporta automaticamente para a estrela quando ela spawnar."
+})
+
+Tabs.Star:AddToggle("StarToggle", {
+    Title = "Ligar Auto Star",
+    Description = "Pega a estrela automaticamente",
+    Default = false
+}):OnChanged(function(Value)
+    starAtivo = Value
+    if Value then
+        IniciarAutoStar()
+        Fluent:Notify({Title = "⭐ Star", Content = "Auto Star LIGADO!", Duration = 3})
+    else
+        Fluent:Notify({Title = "⭐ Star", Content = "Auto Star DESLIGADO!", Duration = 3})
+    end
+end)
+
+Tabs.Star:AddButton({
+    Title = "Verificar Estrela Agora",
+    Description = "Força uma verificação imediata",
+    Callback = function()
+        local estrela = VerificarEstrela()
+        if estrela then
+            Fluent:Notify({Title = "⭐ Star", Content = "Estrela encontrada! Teleportando...", Duration = 3})
+            TeleportarParaEstrela(estrela)
+        else
+            Fluent:Notify({Title = "⭐ Star", Content = "Nenhuma estrela no mapa agora.", Duration = 3})
+        end
+    end
+})
+
+-- // ==========================================
+-- // 14. ABA MOVIMENTO
+-- // ==========================================
+
+Tabs.Movimento:AddParagraph({
+    Title = "🏃 Movimento",
+    Content = "Fly e Speed"
+})
+
+Tabs.Movimento:AddToggle("FlyToggle", {
+    Title = "Fly (Voar)",
+    Description = "WASD para voar, Space para subir, Shift para descer",
+    Default = false
+}):OnChanged(function(Value)
+    flyAtivo = Value
+    if Value then
+        IniciarFly()
+        Fluent:Notify({Title = "Movimento", Content = "Fly LIGADO! Use WASD + Space + Shift", Duration = 5})
+    else
+        PararFly()
+        Fluent:Notify({Title = "Movimento", Content = "Fly DESLIGADO!", Duration = 3})
+    end
+end)
+
+Tabs.Movimento:AddSlider("SpeedSlider", {
+    Title = "Speed (Velocidade)",
+    Description = "Aumenta a velocidade de andar",
+    Default = 16,
+    Min = 16,
+    Max = 500,
+    Rounding = 0,
+    Callback = function(Value)
+        if humanoid then
+            humanoid.WalkSpeed = Value
+        end
+    end
+}):OnChanged(function(Value)
+    if humanoid then humanoid.WalkSpeed = Value end
+end)
+
+Tabs.Movimento:AddButton({
+    Title = "🔄 Resetar Personagem",
+    Description = "Remove todos os efeitos e reseta o personagem",
+    Callback = function()
+        flyAtivo = false
+        PararFly()
+        humanoid.WalkSpeed = 16
+        humanoid.JumpPower = 50
+        Fluent:Notify({Title = "Movimento", Content = "Personagem resetado!", Duration = 3})
+    end
+})
+
+-- // ==========================================
+-- // 15. ABA KILL (EM DESENVOLVIMENTO)
+-- // ==========================================
+
+Tabs.Kill:AddParagraph({
+    Title = "🔒 EM DESENVOLVIMENTO",
+    Content = "Esta função está temporariamente bloqueada.\nAguarde a próxima atualização do CP MENU."
+})
+
+Tabs.Kill:AddButton({
+    Title = "🔒 Função Kill (Bloqueada)",
+    Description = "Em desenvolvimento - Aguarde atualização",
+    Callback = function()
+        Fluent:Notify({
+            Title = "🔒 Bloqueado",
+            Content = "Esta função está em desenvolvimento. Aguarde a próxima atualização!",
+            Duration = 5
+        })
+    end
+})
+
+Tabs.Kill:AddButton({
+    Title = "🔒 Matar Todos (Bloqueada)",
+    Description = "Em desenvolvimento - Aguarde atualização",
+    Callback = function()
+        Fluent:Notify({
+            Title = "🔒 Bloqueado",
+            Content = "Esta função está em desenvolvimento. Aguarde a próxima atualização!",
+            Duration = 5
+        })
+    end
+})
+
+-- // ==========================================
+-- // 16. ABA PLAYERS
+-- // ==========================================
+
+Tabs.Players:AddParagraph({
+    Title = "👥 Funções de Player",
+    Content = "Selecione um jogador e escolha a ação."
+})
+
+local JogadorDropdown = Tabs.Players:AddDropdown("PlayerDropdown", {
+    Title = "Selecionar Jogador",
+    Values = AtualizarListaJogadores(),
+    Multi = false,
+    Default = 1
+})
+
+JogadorDropdown:OnChanged(function(Value)
+    jogadorSelecionado = Value
+    Fluent:Notify({Title = "👥 Player", Content = "Selecionado: " .. tostring(Value), Duration = 2})
+end)
+
+spawn(function()
+    while task.wait(3) do
+        local lista = AtualizarListaJogadores()
+        if #lista > 0 then
+            JogadorDropdown:Refresh(lista)
+        end
+    end
+end)
+
+Tabs.Players:AddButton({
+    Title = "🚀 Teleportar para Jogador",
+    Description = "Teleporta você para o jogador selecionado",
+    Callback = function()
+        if jogadorSelecionado then
+            TeleportarParaJogador(jogadorSelecionado)
+        else
+            Fluent:Notify({Title = "👥 Player", Content = "Nenhum jogador selecionado!", Duration = 3})
+        end
+    end
+})
+
+Tabs.Players:AddButton({
+    Title = "👁 Espectador (Ver Tela)",
+    Description = "Ver a tela do jogador selecionado",
+    Callback = function()
+        if jogadorSelecionado then
+            IniciarEspectador(jogadorSelecionado)
+        else
+            Fluent:Notify({Title = "👥 Player", Content = "Nenhum jogador selecionado!", Duration = 3})
+        end
+    end
+})
+
+Tabs.Players:AddButton({
+    Title = "❌ Parar Espectador",
+    Description = "Volta para a sua câmera",
+    Callback = function()
+        PararEspectador()
+    end
+})
+
+Tabs.Players:AddButton({
+    Title = "🪝 Puxar Jogador",
+    Description = "Força o jogador selecionado a vir até você",
+    Callback = function()
+        if jogadorSelecionado then
+            PuxarJogador(jogadorSelecionado)
+        else
+            Fluent:Notify({Title = "👥 Player", Content = "Nenhum jogador selecionado!", Duration = 3})
+        end
+    end
+})
+
+-- // ==========================================
+-- // 17. SAVE MANAGER
+-- // ==========================================
+
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("CPMenu")
+SaveManager:SetFolder("CPMenu/Config")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+
+Window:SelectTab(1)
+
+Fluent:Notify({
+    Title = "cp menu",
+    Content = "Feito por Shyunocp | Script carregado!",
+    Duration = 5
+})
